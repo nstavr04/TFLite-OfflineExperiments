@@ -105,23 +105,48 @@ class Experiments:
                   .format(train_x.shape, train_y.shape))
 
             if i == 1:
-                cl_model.model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.00005),
+                cl_model.model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.00005),
                                        loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-                cl_model.head.compile(optimizer=tf.keras.optimizers.SGD(lr=0.00005),
+                cl_model.head.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.00005),
                                       loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
             # Padding of the first batch. Unsure about this
             # Reimplement these
             if i == 0:
                 (train_x, train_y), it_x_ep = pad_data([train_x, train_y], 128)
+            
             shuffle_in_unison([train_x, train_y], in_place=True)
 
             print("---------------------------------")
 
             features = cl_model.feature_extractor.predict(train_x)
-            cl_model.head.fit(features, train_y, epochs=4, verbose=0)
+
+            # Combining the new samples and the replay buffer samples before training
+            # Can't do it because not enough memory, leaving it separated for now (new samples and replay buffer samples)
+            print("> Combining new samples and replay buffer samples before training")
             if i >= 1:
-                cl_model.replay()
+                # Get replay samples
+                replay_x = np.array(cl_model.replay_representations_x)
+                replay_y = np.array(cl_model.replay_representations_y)
+
+                # Combine new samples with replay samples
+                combined_x = np.concatenate((features, replay_x), axis=0)
+                combined_y = np.concatenate((train_y, replay_y), axis=0)
+            else:
+                combined_x = features
+                combined_y = train_y
+
+            # Shuffle the combined samples
+            shuffle_in_unison([combined_x, combined_y], in_place=True)
+
+            print("combined-x shape: {}, combined-y shape: {}".format(combined_x.shape, combined_y.shape))
+
+            # Fit the head on the combined samples
+            cl_model.head.fit(combined_x, combined_y, epochs=4, verbose=0)
+
+            # cl_model.head.fit(features, train_y, epochs=4, verbose=0)
+            # if i >= 1:
+            #     cl_model.replay()
 
             cl_model.storeRepresentations(train_x, train_y)
 

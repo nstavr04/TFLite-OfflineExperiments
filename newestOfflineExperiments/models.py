@@ -38,7 +38,7 @@ class ContinualLearningModel:
         f = inputs
         f_out = self.base(f)
         self.feature_extractor = tf.keras.Model(f, f_out)
-        self.feature_extractor.compile(optimizer=tf.keras.optimizers.SGD(lr=0.001), loss='categorical_crossentropy',
+        self.feature_extractor.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001), loss='categorical_crossentropy',
                                        metrics=['accuracy'])
 
     # Head with hidden layers
@@ -77,7 +77,7 @@ class ContinualLearningModel:
             bias_regularizer=l2(0.01)),
         )
 
-        self.head.compile(optimizer=tf.keras.optimizers.SGD(lr=0.001), loss='sparse_categorical_crossentropy',
+        self.head.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001), loss='sparse_categorical_crossentropy',
                           metrics=['accuracy'])    
 
     def buildCompleteModel(self):
@@ -87,14 +87,14 @@ class ContinualLearningModel:
         x = self.base(x)
         outputs = self.head(x)
         self.model = tf.keras.Model(inputs, outputs)
-        self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.001), loss='sparse_categorical_crossentropy',
+        self.model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001), loss='sparse_categorical_crossentropy',
                            metrics=['accuracy'])
         # self.model.summary()
 
     # Refreshing replay memory with new samples and removing old ones if necessary
     # Fix bug with patterns being a little less than they should be
     # This bug I think that it is caused because the replacement batch size is calculated as a percentage of the replay buffer
-    # Which is greater than the actual number of patterns sotred in the replay buffer
+    # Which is greater than the actual number of patterns stored in the replay buffer
     def storeRepresentations(self, train_x, train_y):
         # We ened to add replay representations and replacement batch size not train_x
         replacement_batch_size = int(self.replay_buffer * 0.015) # 1.5% sample replacement
@@ -107,23 +107,15 @@ class ContinualLearningModel:
         # print("Replay Memory Size: ",replay_memory_size)
         # print("replay representation x: ",len(self.replay_representations_x))
         # print("train x: ",len(train_x))
-        # print("Replay Buffer: ",self.replay_buffer)
 
         # If the replay buffer will overfill we need to remove some old samples
         if replay_memory_size >= self.replay_buffer:
 
-            # Bug fix with using least_patterns 
-            # least_patterns = min(replacement_batch_size, len(self.replay_representations_x))
-            least_patterns = replacement_batch_size
-
-            print(replacement_batch_size)
-            print(len(self.replay_representations_x))
-
-            x_sample, y_sample = zip(*random.choices(list(zip(train_x, train_y)), k=least_patterns))
+            x_sample, y_sample = zip(*random.choices(list(zip(train_x, train_y)), k=replacement_batch_size))
             x_sample = self.feature_extractor.predict(np.array(x_sample))
 
             # Removing old samples
-            patterns_to_delete = random.sample(range(len(self.replay_representations_x)), least_patterns)
+            patterns_to_delete = random.sample(range(len(self.replay_representations_x)), replacement_batch_size)
             for pat in sorted(patterns_to_delete, reverse=True):
                 del self.replay_representations_x[pat]
                 del self.replay_representations_y[pat]
@@ -142,15 +134,10 @@ class ContinualLearningModel:
         print("Replay X: ",len(self.replay_representations_x)," Replay Y: ",len(self.replay_representations_y))
 
     def replay(self):
-        # TODO: Right now the model REPLAYS before or after training.
-        #      We should mix the new samples with replayed ones instead
+
         replay_x = np.array(self.replay_representations_x)
         replay_y = np.array(self.replay_representations_y)
 
         print("> REPLAYING")
-        self.head.fit(replay_x,replay_y,epochs=1,verbose=0) # just 1 epoch for now
-
-        # for i in range(len(self.replay_representations_x)):
-        #     replay_x = self.replay_representations_x[i]
-        #     replay_y = self.replay_representations_y[i]
-        #     self.head.fit(replay_x,replay_y,epochs=1,verbose=0) # just 1 epoch for now
+        # Fitting for just 1 epoch
+        self.head.fit(replay_x,replay_y,epochs=1,verbose=0) 
