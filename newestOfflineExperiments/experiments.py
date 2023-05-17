@@ -148,7 +148,9 @@ class Experiments:
             # if i >= 1:
             #     cl_model.replay()
 
-            cl_model.storeRepresentations(train_x, train_y)
+            # cl_model.storeRepresentations(train_x, train_y)
+
+            cl_model.storeRepresentationsNativeRehearsal(train_x, train_y, i+1)
 
             # Evaluate the model on the test set
             loss, acc = cl_model.model.evaluate(test_x, test_y)

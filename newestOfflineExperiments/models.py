@@ -96,7 +96,7 @@ class ContinualLearningModel:
     # This bug I think that it is caused because the replacement batch size is calculated as a percentage of the replay buffer
     # Which is greater than the actual number of patterns stored in the replay buffer
     def storeRepresentations(self, train_x, train_y):
-        # We ened to add replay representations and replacement batch size not train_x
+        # We need to add replay representations and replacement batch size not train_x
         replacement_batch_size = int(self.replay_buffer * 0.015) # 1.5% sample replacement
         replay_memory_size = len(self.replay_representations_x) + replacement_batch_size
 
@@ -108,8 +108,54 @@ class ContinualLearningModel:
         # print("replay representation x: ",len(self.replay_representations_x))
         # print("train x: ",len(train_x))
 
+        # A check to see if the replacement batch size is greater than the number of samples in a batch
+        # This could happen for e.g buffer sizes of 30000 since the batch size is around 300 samples and 1.5% of 30000 is 450
+        if replacement_batch_size > len(train_x):
+            replacement_batch_size = train_x
+
         # If the replay buffer will overfill we need to remove some old samples
         if replay_memory_size >= self.replay_buffer:
+
+            x_sample, y_sample = zip(*random.choices(list(zip(train_x, train_y)), k=replacement_batch_size))
+            x_sample = self.feature_extractor.predict(np.array(x_sample))
+
+            # Removing old samples
+            patterns_to_delete = random.sample(range(len(self.replay_representations_x)), replacement_batch_size)
+            for pat in sorted(patterns_to_delete, reverse=True):
+                del self.replay_representations_x[pat]
+                del self.replay_representations_y[pat]
+
+        # If it will not overfill we just add the new samples
+        else:
+            x_sample, y_sample = zip(*random.choices(list(zip(train_x, train_y)), k=replacement_batch_size))
+            x_sample = self.feature_extractor.predict(np.array(x_sample))
+
+        # Adding new ones
+        for i in range(len(x_sample)):
+            self.replay_representations_x.append(x_sample[i])
+            self.replay_representations_y.append(y_sample[i])
+
+        gc.collect()
+        print("Replay X: ",len(self.replay_representations_x)," Replay Y: ",len(self.replay_representations_y))
+
+    # Slightly different approach where we follow the algorithm as shown in Latent Replay for Real-Time Continual Learning
+    # https://arxiv.org/abs/1912.01100.pdf
+    def storeRepresentationsNativeRehearsal(self, train_x, train_y, batch_num):
+
+        # The replacement batch size will progressively decrease to keep a balanced
+        # contribution from the different training batches. We don't have class balancing
+        replacement_batch_size = int(self.replay_buffer / batch_num)
+        print("Replacement Batch Size: ",replacement_batch_size)
+        # new_replay_memory_size = len(self.replay_representations_x) + replacement_batch_size
+
+        # A check to see if the replacement batch size is greater than the number of samples in a batch
+        # This could happen for e.g buffer sizes of 30000 since the batch size is around 300 samples and 1.5% of 30000 is 450
+        if replacement_batch_size > len(train_x):
+            replacement_batch_size = len(train_x)
+
+        # If the replay buffer will overfill we need to remove some old samples
+        # if new_replay_memory_size >= self.replay_buffer:
+        if batch_num != 1:
 
             x_sample, y_sample = zip(*random.choices(list(zip(train_x, train_y)), k=replacement_batch_size))
             x_sample = self.feature_extractor.predict(np.array(x_sample))
