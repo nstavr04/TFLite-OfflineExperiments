@@ -82,9 +82,9 @@ if __name__ == '__main__':
     elif args.exp_RBS_7500:
         print("> Experiment: RBS_7500")
 
-        experiments.runHiddenLayersExperiment(experiment_name="RBS_7500_HL_EXPERIMENTS",
-                                                    usecase="RBS_7500_HL0",
-                                                    replay_size=7500, num_hidden_layers=0)
+        # experiments.runHiddenLayersExperiment(experiment_name="RBS_7500_HL_EXPERIMENTS",
+        #                                             usecase="RBS_7500_HL0",
+        #                                             replay_size=7500, num_hidden_layers=0)
         
         # experiments.runHiddenLayersExperiment(experiment_name="RBS_7500_HL_EXPERIMENTS",
         #                                             usecase="RBS_7500_HL1",

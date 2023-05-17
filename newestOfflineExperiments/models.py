@@ -62,12 +62,12 @@ class ContinualLearningModel:
 
         self.head.add(layers.Flatten(input_shape=(4, 4, 1280)))
         # Removed the dense layer since we add Hidden Layers from MobileNetV2 now
-        # self.head.add(layers.Dense(
-        # units=sl_units,
-        # activation='relu',
-        # kernel_regularizer=l2(0.01),
-        # bias_regularizer=l2(0.01)
-        # ))
+        self.head.add(layers.Dense(
+        units=sl_units,
+        activation='relu',
+        kernel_regularizer=l2(0.01),
+        bias_regularizer=l2(0.01)
+        ))
 
         # Softmax layer (Last layer)
         self.head.add(layers.Dense(
@@ -148,6 +148,8 @@ class ContinualLearningModel:
         print("Replacement Batch Size: ",replacement_batch_size)
         # new_replay_memory_size = len(self.replay_representations_x) + replacement_batch_size
 
+        print("Current Replay Memory Size: ",len(self.replay_representations_x))
+
         # A check to see if the replacement batch size is greater than the number of samples in a batch
         # This could happen for e.g buffer sizes of 30000 since the batch size is around 300 samples and 1.5% of 30000 is 450
         if replacement_batch_size > len(train_x):
@@ -155,7 +157,7 @@ class ContinualLearningModel:
 
         # If the replay buffer will overfill we need to remove some old samples
         # if new_replay_memory_size >= self.replay_buffer:
-        if batch_num != 1:
+        if batch_num != 1 and (len(self.replay_representations_x) + replacement_batch_size) >= self.replay_buffer:
 
             x_sample, y_sample = zip(*random.choices(list(zip(train_x, train_y)), k=replacement_batch_size))
             x_sample = self.feature_extractor.predict(np.array(x_sample))
