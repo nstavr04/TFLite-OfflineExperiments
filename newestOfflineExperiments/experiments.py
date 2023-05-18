@@ -38,6 +38,7 @@ class Experiments:
         #plt.show()
         plt.savefig(experiment_name)
     
+    # Function used to store our experiment results in a json file
     def storeExperimentOutputNew(self, experiment_name, usecase_name, accuracies, losses):
         data = []
 
@@ -74,7 +75,7 @@ class Experiments:
         cl_model.buildHeadHidden(sl_units=128, hidden_layers=num_hidden_layers)
         cl_model.buildCompleteModel()
 
-        # Used for debugging
+        #### Used for debugging ####
 
         # # After building the complete model
         # print("Base model trainable status:")
@@ -92,6 +93,8 @@ class Experiments:
         # # Stop the program
         # exit()
 
+        #### End of debugging ####
+
         accuracies = []
         losses = []
 
@@ -106,13 +109,15 @@ class Experiments:
 
             if i == 1:
                 # Previous values on both: 0.00005
+                # A higher learning rate on the head such as 0.001 works way better especially with the latent replay buffer
+                # Increasing the learning rate even more to e.g. 0.01 makes the model unstable since on some batches we have huge loss
+                # but the overall accuracy remains more or less the same
                 cl_model.model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.00005),
                                        loss='sparse_categorical_crossentropy', metrics=['accuracy'])
                 cl_model.head.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001),
                                       loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
             # Padding of the first batch. Unsure about this
-            # Reimplement these
             if i == 0:
                 (train_x, train_y), it_x_ep = pad_data([train_x, train_y], 128)
             
@@ -123,7 +128,6 @@ class Experiments:
             features = cl_model.feature_extractor.predict(train_x)
 
             # Combining the new samples and the replay buffer samples before training
-            # Can't do it because not enough memory, leaving it separated for now (new samples and replay buffer samples)
             print("> Combining new samples and replay buffer samples before training")
             if i >= 1:
                 # Get replay samples
@@ -145,12 +149,16 @@ class Experiments:
             # Fit the head on the combined samples
             cl_model.head.fit(combined_x, combined_y, epochs=4, verbose=0)
 
+            #### Used if we want to fit the head on the new samples and the replay buffer samples separately ####
+
             # cl_model.head.fit(features, train_y, epochs=4, verbose=0)
             # if i >= 1:
             #     cl_model.replay()
-
             # cl_model.storeRepresentations(train_x, train_y)
 
+            #### End of the above ####
+
+            # Store the representations of the new samples in the replay buffer
             cl_model.storeRepresentationsNativeRehearsal(train_x, train_y, i+1)
 
             # Evaluate the model on the test set
