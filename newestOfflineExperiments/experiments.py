@@ -26,7 +26,7 @@ class Experiments:
                     cur_max = max(value['acc'])
                     if cur_min < min_val:
                         min_val = cur_min
-                    elif cur_max > max_val:
+                    if cur_max > max_val:
                         max_val = cur_max
 
         plt.title(title)
@@ -76,7 +76,7 @@ class Experiments:
 
         # Used for debugging
 
-        # After building the complete model
+        # # After building the complete model
         # print("Base model trainable status:")
         # self.print_trainable_status(cl_model.base)
 
@@ -89,7 +89,7 @@ class Experiments:
         # print("\nComplete model summary:")
         # cl_model.model.summary()
 
-        # Stop the program
+        # # Stop the program
         # exit()
 
         accuracies = []
@@ -105,9 +105,10 @@ class Experiments:
                   .format(train_x.shape, train_y.shape))
 
             if i == 1:
+                # Previous values on both: 0.00005
                 cl_model.model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.00005),
                                        loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-                cl_model.head.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.00005),
+                cl_model.head.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001),
                                       loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
             # Padding of the first batch. Unsure about this
