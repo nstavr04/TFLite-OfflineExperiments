@@ -6,7 +6,7 @@ This is a repository for experimenting with different models with the goal of pe
 
 For the models we keep a structure of the base being a frozen model and the head being a series of layers that can be trained real time on-device.
 
-### Latest methodology
+## Latest methodology
 
 - We evaluate our models on the CORe50 NICv2 - 391 dataset.
 - So far, the model with the highest accuracy was a frozen MobileNetV2 for the base and a head which utilizes latent replay by moving some hidden layers from the base of the model to the head.
